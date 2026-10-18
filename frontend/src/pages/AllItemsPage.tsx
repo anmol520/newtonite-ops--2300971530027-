@@ -95,7 +95,7 @@ export function AllItemsPage() {
       return await apiFetch<PaginatedResponse<WorkItem>>(`/api/items?${queryString}`);
     },
     initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor || null,
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });

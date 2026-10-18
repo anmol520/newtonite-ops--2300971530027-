@@ -108,7 +108,7 @@ export function ItemDetailPage() {
       );
     },
     initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor || null,
     enabled: Boolean(id),
   });
 
@@ -414,7 +414,7 @@ export function ItemDetailPage() {
     !['resolved', 'closed'].includes(item.status) &&
     new Date(item.due_date).getTime() < Date.now();
 
-  const allActivity = activityData ? activityData.pages.flatMap((p) => p.events || []) : [];
+  const allActivity = activityData ? activityData.pages.flatMap((p) => p?.events || []) : [];
 
   return (
     <div className="space-y-6">

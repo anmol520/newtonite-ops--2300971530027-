@@ -50,7 +50,7 @@ export function DashboardPage() {
       );
     },
     initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor || null,
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
