@@ -12,7 +12,8 @@
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
     "test": "vitest run --sequence.concurrent=false",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "demo:concurrency": "tsx scripts/demo-concurrency.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

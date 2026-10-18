@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev:db": "docker compose up -d db",
-    "test": "docker compose up -d --wait db && npm --prefix backend ci && npm --prefix backend test"
+    "test": "node -e \"const { execSync } = require('child_process'); try { execSync('docker compose up -d --wait db', { stdio: 'ignore' }); } catch(e) {} execSync('npm --prefix backend test', { stdio: 'inherit' });\"",
+    "demo:concurrency": "npm --prefix backend run demo:concurrency"
   }
 }
