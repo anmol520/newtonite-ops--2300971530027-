@@ -4,7 +4,7 @@ A concurrency-correct, audited operations management platform for fast-moving te
 
 `React 18` | `TypeScript` | `Tailwind CSS 3.4` | `TanStack Query` | `Node.js 20` | `Express` | `PostgreSQL 16` | `Docker`
 
-Author: **<ANMOL>** | Roll No: **<2300971530027>** |   
+Author: ANMOL | Roll No: **<2300971530027>** |   
  
 
 ---
