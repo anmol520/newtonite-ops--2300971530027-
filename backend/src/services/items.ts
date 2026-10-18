@@ -287,11 +287,14 @@ export async function claimItem(
 ): Promise<WorkItem> {
   const current = await getItemById(itemId, user, client);
 
-  // Authorization check: Verify user is allowed to claim this item
-  if (!can(user, 'claim', current)) {
-    throw forbidden('You are not authorized to claim this work item');
+  // Authorization check: Verify caller has role permission (member/lead/admin) to claim in this team.
+  // Viewers or users outside the team receive 403 FORBIDDEN.
+  if (!can(user, 'claim', { team_id: current.team_id, status: 'open', assignee_id: null })) {
+    throw forbidden('You are not authorized to claim items in this team');
   }
 
+  // Atomic conditional UPDATE prevents race conditions. Under parallel claims, exactly one
+  // transaction modifies the row; all others match 0 rows and return 409 ALREADY_CLAIMED.
   const claimQuery = `
     UPDATE work_items
     SET assignee_id = $1,
