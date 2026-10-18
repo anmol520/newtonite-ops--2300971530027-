@@ -25,22 +25,6 @@ High-throughput operations teams handle critical incidents across overlapping sh
 
 ---
 
-## Screenshots
-
-The screenshots below illustrate key platform flows. Place image captures in `docs/screenshots/`:
-
-| Dashboard & Attention Queues | All Items & Keyset Search |
-| :---: | :---: |
-| ![Dashboard](docs/screenshots/dashboard.png) | ![All Items](docs/screenshots/items.png) |
-| *Live count cards, active filters, and queue selection* | *Server-side full-text search and keyset pagination* |
-
-| Item Detail & Audit Timeline | Concurrency Conflict Reconciliation |
-| :---: | :---: |
-| ![Item Detail](docs/screenshots/item-detail.png) | ![Conflict Banner](docs/screenshots/conflict-banner.png) |
-| *Workflow stepper, allowed actions, and immutable history* | *409 OCC collision banner with draft preservation* |
-
----
-
 ## Quick Start
 
 ### Prerequisites
@@ -366,7 +350,6 @@ newtonite-ops/
 │   │   └── test/                # Vitest optimistic update rollback test
 │   ├── nginx.conf               # Production SPA reverse proxy and routing
 │   └── Dockerfile               # Multi-stage Vite build and Nginx runner
-├── docs/screenshots/           # UI demonstration assets
 ├── docker-compose.yml           # Orchestration for db, api, worker, and web
 ├── package.json                 # Root script definitions
 ├── ARCHITECTURE.md              # Technical architecture, sequence diagrams, and specifications
