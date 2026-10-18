@@ -4,8 +4,8 @@ A concurrency-correct, audited operations management platform for fast-moving te
 
 `React 18` | `TypeScript` | `Tailwind CSS 3.4` | `TanStack Query` | `Node.js 20` | `Express` | `PostgreSQL 16` | `Docker`
 
-Author: **<YOUR NAME>** | Roll No: **<ROLL NO>** | GitHub: [**<GITHUB PROFILE LINK>**](https://github.com)  
-Demo Video: [**<DEMO VIDEO LINK>**](https://youtube.com)
+Author: **<ANMOL>** | Roll No: **<2300971530027>** |   
+ 
 
 ---
 
@@ -61,7 +61,7 @@ The screenshots below illustrate key platform flows. Place image captures in `do
    - **Web Interface**: [http://localhost:3000](http://localhost:3000)
    - **Backend API**: [http://localhost:4000](http://localhost:4000)
    - **API Health Check**: [http://localhost:4000/api/health](http://localhost:4000/api/health)
-   - **PostgreSQL Database**: `localhost:5433` (`user: ops`, `password: ops`, `database: ops`)
+   - **PostgreSQL Database**: `localhost:5434` (`user: ops`, `password: ops`, `database: ops`)
 
 ### Demo Accounts
 All demo accounts share the password: `Demo@12345`. Each demonstrates specific authorization boundaries:
@@ -121,7 +121,7 @@ flowchart TD
         Worker["Outbox Worker Daemon"]
     end
 
-    subgraph Persistence["PostgreSQL 16 (Port 5433)"]
+    subgraph Persistence["PostgreSQL 16 (Port 5434)"]
         DB[(PostgreSQL Database)]
         OutboxTable["outbox_jobs"]
         EventsTable["activity_events"]

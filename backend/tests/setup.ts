@@ -2,11 +2,13 @@ import { Client, Pool } from 'pg';
 import { runMigrations } from '../src/db/migrate';
 
 export default async function globalSetup() {
-  process.env.DATABASE_URL = 'postgresql://ops:ops@localhost:5433/ops_test';
+  process.env.DATABASE_URL =
+    process.env.TEST_DATABASE_URL || 'postgresql://ops:ops@localhost:5434/ops_test';
 
   // 1. Ensure ops_test database exists
   const adminClient = new Client({
-    connectionString: 'postgresql://ops:ops@localhost:5433/postgres',
+    connectionString:
+      process.env.DATABASE_ADMIN_URL || 'postgresql://ops:ops@localhost:5434/postgres',
   });
 
   try {

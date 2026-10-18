@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import { createApp } from '../src/app';
 import { config } from '../src/config';
 
-export const testDbUrl = 'postgresql://ops:ops@localhost:5433/ops_test';
+export const testDbUrl =
+  process.env.TEST_DATABASE_URL || 'postgresql://ops:ops@localhost:5434/ops_test';
 
 export const testPool = new Pool({
   connectionString: testDbUrl,
