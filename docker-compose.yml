@@ -2,18 +2,63 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: ops
-      POSTGRES_PASSWORD: ops
-      POSTGRES_DB: ops
+      POSTGRES_USER: ${POSTGRES_USER:-ops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ops}
+      POSTGRES_DB: ${POSTGRES_DB:-ops}
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ops -d ops"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ops} -d ${POSTGRES_DB:-ops}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ops}:${POSTGRES_PASSWORD:-ops}@db:5432/${POSTGRES_DB:-ops}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-real-deployments}
+      SEED_ITEMS: ${SEED_ITEMS:-5000}
+      WORKER_POLL_MS: ${WORKER_POLL_MS:-1500}
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/api/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["npm", "run", "start:worker"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ops}:${POSTGRES_PASSWORD:-ops}@db:5432/${POSTGRES_DB:-ops}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-real-deployments}
+      WORKER_POLL_MS: ${WORKER_POLL_MS:-1500}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:

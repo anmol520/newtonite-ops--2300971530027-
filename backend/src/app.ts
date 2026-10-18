@@ -14,6 +14,11 @@ export function createApp(): Express {
   app.use(helmet());
   app.use(express.json());
 
+  // Healthcheck endpoint
+  app.get('/api/health', (_req: Request, res: Response) => {
+    res.json({ status: 'ok' });
+  });
+
   // Mount API route groups
   app.use('/api/auth', authRouter);
 

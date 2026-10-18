@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "start:worker": "tsx src/worker/worker.ts",
+    "init:db": "node dist/db/init.js",
+    "start": "node dist/db/init.js && node dist/server.js",
+    "start:worker": "node dist/worker/worker.js",
+    "dev:worker": "tsx src/worker/worker.ts",
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
     "test": "vitest run --sequence.concurrent=false",

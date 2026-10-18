@@ -1,0 +1,9 @@
+{
+  "name": "operations-under-pressure",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:db": "docker compose up -d db",
+    "test": "docker compose up -d --wait db && npm --prefix backend ci && npm --prefix backend test"
+  }
+}
