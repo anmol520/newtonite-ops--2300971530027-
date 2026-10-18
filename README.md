@@ -141,6 +141,8 @@ flowchart TD
 2. **Accountable State Change**: Every update writes to `work_items`, appends an immutable entry to `activity_events`, writes any notification to `outbox_jobs`, and caches the response in `idempotency_keys` in the same transaction.
 3. **Asynchronous Outbox Processing**: The background worker polls `outbox_jobs` using `SELECT ... FOR UPDATE SKIP LOCKED`. Handlers process events idempotently, record completion, or schedule exponential backoff retries on error.
 
+For comprehensive architectural specifications, sequence diagrams, and concurrency guarantees, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ---
 
 ## Critical Behaviours
@@ -257,11 +259,10 @@ stateDiagram-v2
     [*] --> open : Create Item
     open --> in_progress : Claim / Assign / Start Work
     in_progress --> awaiting_approval : Request Approval
-    in_progress --> resolved : Direct Resolve (Non-approval items)
     awaiting_approval --> resolved : Approve (Lead only, non-assignee)
     awaiting_approval --> in_progress : Reject with Reason
     resolved --> closed : Close Item
-    closed --> in_progress : Reopen with Reason
+    resolved --> in_progress : Reopen with Reason
 ```
 
 ### Role Authorization Matrix
@@ -368,11 +369,12 @@ newtonite-ops/
 ├── docs/screenshots/           # UI demonstration assets
 ├── docker-compose.yml           # Orchestration for db, api, worker, and web
 ├── package.json                 # Root script definitions
+├── ARCHITECTURE.md              # Technical architecture, sequence diagrams, and specifications
 ├── ENGINEERING_DECISIONS.md     # Architectural and engineering rationale
 └── README.md
 ```
 
-Detailed design trade-offs and rationale are documented in [ENGINEERING_DECISIONS.md](file:///c:/Users/HP/newtonite-ops--2300971530027-/ENGINEERING_DECISIONS.md).
+Detailed architectural specifications and sequence diagrams are in [ARCHITECTURE.md](ARCHITECTURE.md), and design trade-offs are documented in [ENGINEERING_DECISIONS.md](ENGINEERING_DECISIONS.md).
 
 ---
 

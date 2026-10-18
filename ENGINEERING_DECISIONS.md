@@ -119,21 +119,26 @@ I implemented the Transactional Outbox pattern:
 - The API transaction that modifies `work_items` also inserts into `outbox_jobs`. If the transaction rolls back, no spurious notification is queued.
 - A separate background worker daemon polls `outbox_jobs` using:
   ```sql
-  SELECT id, job_type, payload, attempts
-  FROM outbox_jobs
-  WHERE status IN ('pending', 'failed')
-    AND attempts < max_attempts
-    AND next_run_at <= now()
-    AND (locked_until IS NULL OR locked_until < now())
-  ORDER BY created_at ASC
-  LIMIT 10
-  FOR UPDATE SKIP LOCKED;
+  UPDATE outbox_jobs
+  SET status = 'processing',
+      locked_at = now(),
+      attempts = attempts + 1
+  WHERE id IN (
+    SELECT id
+    FROM outbox_jobs
+    WHERE (status = 'pending' AND run_at <= now())
+       OR (status = 'processing' AND locked_at < now() - interval '60 seconds')
+    ORDER BY id
+    FOR UPDATE SKIP LOCKED
+    LIMIT 10
+  )
+  RETURNING *;
   ```
 - `FOR UPDATE SKIP LOCKED` ensures multiple worker processes never process the same job concurrently.
-- Handlers are written idempotently (e.g. checking existing notifications before inserting). Failures increment `attempts` and calculate exponential backoff (`next_run_at = now() + (2 ^ attempts) * 1 second`).
+- Handlers are written idempotently (e.g. notifications using `ON CONFLICT (job_id, user_id) DO NOTHING`). Failures increment `attempts` and calculate exponential backoff (`run_at = now() + (power(2, attempts) * interval '2 seconds')`).
 
 ### Trade-off
-Polling PostgreSQL introduces periodic read queries (every 1500ms). However, by indexing `(status, next_run_at, locked_until)`, the query executes in sub-millisecond time on an index scan. It completely eliminates external broker dependencies while guaranteeing zero lost events.
+Polling PostgreSQL introduces periodic read queries (every 1500ms). However, by indexing `(run_at, id) WHERE status = 'pending'` via `idx_outbox_jobs_pending`, the query executes in sub-millisecond time on an index scan. It completely eliminates external broker dependencies while guaranteeing zero lost events.
 
 ---
 
@@ -149,11 +154,11 @@ The database is seeded with 5,000+ items and must scale to hundreds of thousands
 
 ### Decision
 I implemented server-side keyset pagination using a composite cursor `(created_at, id)`:
-- Queries fetch items with `WHERE (created_at, id) < (cursor_created_at, cursor_id) ORDER BY created_at DESC, id DESC LIMIT 50`.
+- Queries fetch items with `WHERE (wi.created_at < $cursorCreatedAt OR (wi.created_at = $cursorCreatedAt AND wi.id < $cursorId)) ORDER BY wi.created_at DESC, wi.id DESC LIMIT 50`.
 - The cursor is encoded as a URL-safe base64 string containing both values. Because the database jumps directly to the index position, fetching page 100 takes the exact same sub-millisecond execution time as page 1.
 - **Targeted Partial Indexes**:
-  - `idx_work_items_unassigned_urgent`: Indexed on `(team_id, priority)` with `WHERE assignee_id IS NULL AND status = 'open'`. The dashboard's "Unassigned urgent" counter queries an index with only a handful of active rows rather than scanning thousands of closed tickets.
-  - `idx_work_items_tsv`: GIN index on generated column `tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, ''))) STORED`. Full-text search executes through an inverted index rather than expensive table scans (`LIKE %...%`).
+  - `idx_work_items_unassigned_urgent`: Partial index on `(team_id, created_at DESC, id DESC) WHERE assignee_id IS NULL AND priority = 'urgent' AND status NOT IN ('resolved', 'closed')`. The dashboard's "Unassigned urgent" counter queries an index with only a handful of active rows rather than scanning thousands of closed tickets.
+  - `idx_work_items_search_vector`: GIN index on generated column `search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('english', title || ' ' || description)) STORED`. Full-text search executes through an inverted index rather than expensive table scans (`LIKE %...%`).
 
 ### Trade-off
 Keyset pagination does not allow jumping arbitrarily to "Page 47", only "Next" and "Previous" sequential navigation. For operational feeds and incident queues where operators work newest-to-oldest, keyset pagination provides vastly superior stability and performance.
@@ -164,8 +169,8 @@ Keyset pagination does not allow jumping arbitrarily to "Page 47", only "Next" a
 
 | Failure Scenario | Immediate System Behaviour | Recovery Mechanism |
 | :--- | :--- | :--- |
-| **PostgreSQL Unavailable** | Express returns 500 `INTERNAL_ERROR`. API `/api/health` returns 503. Worker pauses poll cycle. | Connection pool reconnects automatically with exponential retry backoff. Frontend displays inline Retry state without crash. |
-| **Worker Crashes Mid-Job** | Row remains marked with `locked_until = now() + 2 minutes`. | Lock expires after 120 seconds. The next worker iteration re-claims the job with `SKIP LOCKED` and safely re-executes. |
+| **PostgreSQL Unavailable** | Express catches connection errors and returns 500 `INTERNAL_SERVER_ERROR`. API `/api/health` returns failure. Worker poll errors logged. | Connection pool reconnects automatically with exponential retry backoff. Frontend displays inline Retry state without crash. |
+| **Worker Crashes Mid-Job** | Row remains marked with `status = 'processing'` and `locked_at = crash_timestamp`. | Lock expires after 60 seconds (`locked_at < now() - interval '60 seconds'`). The next worker iteration re-claims the job with `SKIP LOCKED` and safely re-executes. |
 | **Duplicate Network Request** | Caught by `UNIQUE (user_id, key)` on `idempotency_keys`. | Wait lock resolves, reads cached status code and payload, and returns the original response without re-executing logic. |
 | **Concurrent Item Claim Race** | Single row conditional update succeeds for first query. Remaining 9 queries update 0 rows. | First operator receives 200 OK. Other 9 operators receive `409 ALREADY_CLAIMED` with the winning operator's name. |
 | **Stale Edit Submission** | SQL `WHERE version = $version` matches 0 rows. | API returns `409 VERSION_CONFLICT` with latest server record. Frontend keeps user draft intact and offers "Reload latest". |
